@@ -1,0 +1,37 @@
+version: '3'
+networks:
+  default:
+    driver: bridge
+volumes:
+  minio-data:
+services:
+  minio-proxy:
+    image: jjrom/minio-proxy
+    restart: always
+    build:
+      context: ./
+      dockerfile: ./Dockerfile
+    depends_on:
+      - minio
+    networks:
+      - default
+    environment:
+      MINIO_EXPOSED_PORT: ${MINIO_EXPOSED_PORT:-9000}
+    ports:
+      - ${PROXY_EXPOSED_PORT:-8000}:8080
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1"]
+      interval: 1m
+      timeout: 5s
+  minio:
+    image: minio/minio
+    networks:
+      - default
+    environment:
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-123456}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-ABCDEFGHIJKLMNOP}
+    command: server /data
+    ports:
+      - ${MINIO_EXPOSED_PORT:-9000}:9000
+    volumes:
+      - ${MINIO_DATA_DIR:-minio-data}:/data
